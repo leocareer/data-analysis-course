@@ -130,3 +130,68 @@ WHERE SurfaceArea IN (
      FROM world.country  
      GROUP BY continent
 );
+
+
+-- 10)
+
+-- JOIN
+select  name, aux.continent, aux.ms
+from (select continent, max(surfacearea) as ms from country group by continent) as aux
+join country
+on aux.continent = country.continent
+where country.SurfaceArea = aux.ms
+order by 1,2,3;
+
+-- Paso 1: ejecuta subconsulta
+select continent, max(surfacearea) as ms from country group by continent;
+
+-- Paso 2: ejecuta el from con el join
+select  *
+from (select continent, max(surfacearea) as ms from country group by continent) as aux
+join country
+on aux.continent = country.continent;
+
+-- Paso 3: ejecuta el where, es decir filtra
+select  *
+from (select continent, max(surfacearea) as ms from country group by continent) as aux
+join country
+on aux.continent = country.continent
+where country.SurfaceArea = aux.ms;
+
+-- Paso 4: selecciona lo que hay que mostrar
+select  name, aux.continent, aux.ms
+from (select continent, max(surfacearea) as ms from country group by continent) as aux
+join country
+on aux.continent = country.continent
+where country.SurfaceArea = aux.ms
+order by 1,2,3;
+
+-- FILTRO
+
+-- opción filtro combinado
+SELECT Name, Continent,SurfaceArea
+FROM country
+WHERE (Continent, SurfaceArea) IN
+(SELECT Continent, MAX(SurfaceArea)
+ FROM country 
+ GROUP BY Continent)
+ ORDER BY 1,2,3;
+
+-- opcion filtro simple
+SELECT Name, Continent,SurfaceArea
+FROM country
+WHERE SurfaceArea in
+(SELECT MAX(SurfaceArea)
+ FROM country 
+ GROUP BY Continent)
+ ORDER BY 1,2,3;
+
+-- CORRELACIONADA
+SELECT name, continent,SurfaceArea
+FROM world.country AS a
+WHERE SurfaceArea = (
+    SELECT MAX(SurfaceArea)
+    FROM world.country AS b
+    WHERE a.continent = b.continent
+)
+ORDER BY 1,2,3;
