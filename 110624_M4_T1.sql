@@ -7,6 +7,12 @@ inner join world.city
 on world.country.code = world.city.countrycode
 where world.country.name in ('Andorra','Belize');
 
+select world.country.name countries, world.city.name cities
+from world.country
+join world.city
+on world.country.code = world.city.countrycode
+where world.country.name in ('Andorra','Belize');
+
 -- 2) Mostra el nom del país i la quantitat de llengües que es parlen en els dos mateixos països (de la consulta anterior).
 -- 2) Показать название страны и количество языков, на которых говорят в тех же двух странах (из предыдущего запроса).
 
@@ -26,6 +32,18 @@ inner join world.countrylanguage
 on world.country.code = world.countrylanguage.countrycode
 where world.country.name in ('Antarctica','Chile');
 
+select world.country.name countries, world.countrylanguage.language languagies
+from world.country
+left join world.countrylanguage
+on world.country.code = world.countrylanguage.countrycode
+where world.country.name in ('Antarctica','Chile');
+
+select world.country.name countries, world.countrylanguage.language languagies
+from world.country
+left join world.countrylanguage
+on world.country.code = world.countrylanguage.countrycode
+where world.country.name = 'Chile' or world.country.continent = 'Antarctica';
+
 -- 4) Digues quants països tenen dades a la taula "country" però no tenen dades a la taula de "countryLanguage".
 -- 4) Укажите, сколько стран имеют данные в таблице «country», но не имеют данных в таблице «countryLanguage».
 
@@ -36,6 +54,12 @@ where not exists (
     from world.countrylanguage
     where world.country.code = world.countrylanguage.countrycode
 );
+
+select count(world.country.name) 'no language'
+from world.country
+left join world.countrylanguage
+on world.country.code = world.countrylanguage.countrycode
+where world.countrylanguage.countrycode is null;
 
 -- 5) Mostra el nom del país amb on es parlen més llengües.
 -- 5) Покажите название страны, где говорят на большинстве языков. (12, подзапрос)
