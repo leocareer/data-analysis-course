@@ -36,13 +36,34 @@ de Barcelona 92 és l'1) (1p)
 участвовавших в 92 играх «Барселоны» и которые называются Кристина (запрос 
 можно сделать с учетом того, что id игр Барселоны 92 равен 1) (1p)*/
 
-select olympics.person.full_name "'Christine' female athletes BCN'92"
+select olympics.person.full_name "'Cristina' female athletes BCN'92"
 from olympics.person
 inner join olympics.games_competitor
 on olympics.person.id = olympics.games_competitor.person_id
 where olympics.games_competitor.games_id = 1
 and olympics.person.gender = 'F'
-and olympics.person.full_name like '%Christine%';
+and olympics.person.full_name like '%Cristina%';
+
+-- trabajar en los errores
+
+select a.full_name "'Cristina' female athletes BCN'92"
+from olympics.person a
+where a.gender = 'F'
+and a.full_name like '%Cristina%'
+and a.id in (
+	select b.person_id
+    from olympics.games_competitor b
+    where b.games_id = 1
+)
+and a.id in (
+	select c.person_id
+    from olympics.person_region c
+    where c.region_id in (
+		select d.id
+        from olympics.noc_region d
+        where d.region_name = 'Spain'
+    )
+);
 
 /* 2.4. Mostra el nom de la persona esportista que va guanyar més
 medalles a Rio de Janeiro (és preferible que no, però pots utilitzar el
@@ -72,6 +93,66 @@ having olympics.competitor_event.competitor_id in (
 order by medals desc
 limit 1;
 
+-- trabajar en los errores
+
+-- 1) primera opción
+
+select olympics.person.full_name, count(olympics.competitor_event.medal_id) medals
+from olympics.competitor_event
+inner join olympics.games_competitor on olympics.competitor_event.competitor_id = olympics.games_competitor.id
+inner join olympics.person on olympics.games_competitor.person_id = olympics.person.id
+where olympics.competitor_event.medal_id in (1, 2, 3)
+and olympics.games_competitor.games_id = (
+	select a.games_id
+    from olympics.games_competitor a
+    inner join olympics.games_city on a.games_id = olympics.games_city.games_id
+	inner join olympics.city on olympics.games_city.city_id = olympics.city.id
+	where olympics.city.city_name = 'Rio de Janeiro'
+    group by a.games_id
+)
+group by olympics.person.full_name
+order by medals desc
+limit 1;
+
+-- 2) segunda opción
+
+select olympics.person.full_name, count(olympics.competitor_event.medal_id) medals
+from olympics.competitor_event
+inner join olympics.games_competitor on olympics.competitor_event.competitor_id = olympics.games_competitor.id
+and olympics.games_competitor.games_id = (
+	select a.games_id
+    from olympics.games_competitor a
+    inner join olympics.games_city on a.games_id = olympics.games_city.games_id
+	inner join olympics.city on olympics.games_city.city_id = olympics.city.id
+	where olympics.city.city_name = 'Rio de Janeiro'
+    group by a.games_id
+)
+inner join olympics.person on olympics.games_competitor.person_id = olympics.person.id
+where olympics.competitor_event.medal_id in (1, 2, 3)
+group by olympics.person.full_name
+order by medals desc
+limit 1;
+
+-- 3) tercera opción
+
+select olympics.person.full_name, count(olympics.competitor_event.medal_id) medals
+from olympics.competitor_event
+inner join olympics.games_competitor on olympics.competitor_event.competitor_id = olympics.games_competitor.id
+inner join olympics.person on olympics.games_competitor.person_id = olympics.person.id
+inner join (
+	select a.games_id
+    from olympics.games_competitor a
+    inner join olympics.games_city on a.games_id = olympics.games_city.games_id
+	inner join olympics.city on olympics.games_city.city_id = olympics.city.id
+	where olympics.city.city_name = 'Rio de Janeiro'
+    group by a.games_id
+) as b on olympics.games_competitor.games_id = b.games_id
+where olympics.competitor_event.medal_id in (1, 2, 3)
+and b.games_id is not null
+group by olympics.person.full_name
+order by medals desc
+limit 1;
+
 /* 2.5. Qui va guanyar més medalles d'or en atletisme masculí en els
 jocs de Barcelona 92, Espanya o USA? (És preferible que no, però pots
 utilitzar el fet que els jocs de Barcelona tenen l'id 1 i l'atletisme com a
@@ -80,7 +161,7 @@ esport té l'id 6) (1,5p)
 играх «Барселона-92», Испания или США? (Предпочтительно нет, но вы можете 
 использовать тот факт, что игры в Барселоне имеют идентификатор 1, а легкая 
 атлетика как вид спорта имеет идентификатор 6) (1.5p)*/
-        
+
 select region_name, count(person_id) a
 from (
 	select b.region_name, c.person_id
@@ -110,6 +191,28 @@ group by region_name
 order by a desc
 limit 1;
 
+-- trabajar en los errores
+
+select a.region_name, count(f.medal_id) b
+from olympics.noc_region a
+inner join olympics.person_region c on a.id = c.region_id
+inner join olympics.person d on c.person_id = d.id
+inner join olympics.games_competitor e on d.id = e.person_id 
+and e.games_id = (
+			select olympics.city.id
+			from olympics.city
+			where olympics.city.city_name = 'Barcelona'
+            )
+inner join olympics.competitor_event f on e.id = f.competitor_id and f.medal_id = 1
+and f.event_id in (
+			select olympics.event.id
+			from olympics.event
+			where olympics.event.event_name like 'Athletics Men%'
+			)
+group by a.region_name
+order by b desc
+limit 1;
+
 /* 2.6 Mostra el nom de la persona esportista que té el major pes
 d’entre tots i totes. No ports utilitzar ni ORDER BY ni LIMIT, és a dir la
 consulta a de ser dinàmica i si haguessin dues o més persones amb
@@ -136,16 +239,34 @@ tenim la seva alçada. (2p)
 средний рост всех спортсменов-мужчин. Не обязательно включать в эти 
 расчеты всех тех спортсменов, чей рост у нас отсутствует. (2р)*/
 
-select distinct n.region_name, min(s.height)
+select distinct n.region_name, min(s.height) -- distinct no necesitas usar
 from olympics.person_region p
 inner join olympics.noc_region n on p.region_id = n.id
 inner join olympics.person s on p.region_id = s.id
 where s.gender = 'M'
 and s.height > 0
-group by p.region_id
+group by p.region_id -- нужно ВСЕГДА группировать по тому полю что есть в селекте, здесь просто по сулчайности работает с _name и _id 
 having min(s.height) > (
 	select avg(olympics.person.height)
 	from olympics.person
 	where olympics.person.gender = 'M'
 	and olympics.person.height > 0
     );
+    
+-- trabajar en los errores
+
+select a.region_name, min(c.height) d
+from olympics.noc_region a
+inner join olympics.person_region b on a.id = b.region_id
+inner join olympics.person c on b.person_id = c.id
+where c.gender = 'M'
+and c.height > 0
+group by a.region_name
+having d > (
+	select avg(e.height)
+	from olympics.person e
+	where e.gender = 'M'
+	and e.height > 0
+    );
+    
+    
