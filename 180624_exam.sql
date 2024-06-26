@@ -65,6 +65,17 @@ and a.id in (
     )
 );
 
+-- the best from Gloria
+
+select olympics.person.full_name, olympics.noc_region.region_name
+from olympics.person join olympics.person_region on (olympics.person.id = olympics.person_region.person_id)
+            join olympics.noc_region on (olympics.person_region.region_id = olympics.noc_region.id)
+            join olympics.games_competitor on (olympics.person.id = olympics.games_competitor.person_id)
+where gender = "F"
+and region_name = "Spain"
+and games_competitor.games_id = 1
+and full_name LIKE("Cristina%");
+
 /* 2.4. Mostra el nom de la persona esportista que va guanyar més
 medalles a Rio de Janeiro (és preferible que no, però pots utilitzar el
 fet que els jocs de Rio tenen l'id 21) (1,5p)
@@ -153,6 +164,20 @@ group by olympics.person.full_name
 order by medals desc
 limit 1;
 
+-- the best from Gloria
+
+select person.id , full_name, count(medal_id) 
+from competitor_event 
+	join games_competitor on (competitor_event.competitor_id = games_competitor.id)
+    join person on (games_competitor.person_id = person.id)
+    join medal on (competitor_event.medal_id = medal.id) -- este join es opcional
+where 
+games_competitor.games_id = 21
+and medal_name IN ('Gold', 'Silver', 'Bronze') -- si no se hace el join con la tabla medal se puede filtrar por el id_medal de la tabla competitor_event
+group by person.id ,full_name
+order by count(medal_id) desc
+limit 1;
+
 /* 2.5. Qui va guanyar més medalles d'or en atletisme masculí en els
 jocs de Barcelona 92, Espanya o USA? (És preferible que no, però pots
 utilitzar el fet que els jocs de Barcelona tenen l'id 1 i l'atletisme com a
@@ -212,6 +237,23 @@ and f.event_id in (
 group by a.region_name
 order by b desc
 limit 1;
+
+-- the best from Gloria
+
+select region_name, count(medal_id)
+from person_region join person on (person_region.person_id = person.id)
+            join noc_region on (noc_region.id = person_region.region_id)
+            join games_competitor on (person.id = games_competitor.person_id)
+            join competitor_event on (games_competitor.id = competitor_event.competitor_id)
+            join medal on (competitor_event.medal_id = medal.id)
+            join event on (competitor_event.event_id = event.id)
+where 
+gender = "M"
+and region_name IN("Spain", "USA")
+and sport_id = 6
+and games_competitor.games_id = 1
+and medal_name  = 'Gold'
+group by region_name;
 
 /* 2.6 Mostra el nom de la persona esportista que té el major pes
 d’entre tots i totes. No ports utilitzar ni ORDER BY ni LIMIT, és a dir la
